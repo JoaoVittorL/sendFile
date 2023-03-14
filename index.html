@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Exemplo de formulário</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.6.1/css/bootstrap.min.css"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+  </head>
+  <style>
+    .input-file {
+      background-color: transparent;
+    }
+
+    body {
+      heigth: 100vh;
+    }
+
+    form {
+      background-color: #c4c4c4;
+      padding: 20px;
+      heigth: auto;
+      width: 400px;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .inputEntrada {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .inputEntrada input {
+      outline: none;
+      border: none;
+      heigth: 30px;
+      width: 45%;
+    }
+
+    #showValues {
+      cursor: pointer;
+      padding: 5px;
+      background-color: #000;
+      border: none;
+      color: #fff;
+      border-radius: 4px;
+      transition: 0.3s;
+    }
+
+    #showValues:hover {
+      background-color: #b4b4b4;
+    }
+
+    .fileUpload {
+      position: relative;
+      overflow: hidden;
+    }
+
+    #file {
+      width: 100%;
+    }
+
+    .fileUpload input.upload {
+      position: absolute;
+      top: 0;
+      right: 0;
+      margin: 0;
+      padding: 0;
+      font-size: 20px;
+      cursor: pointer;
+      opacity: 0;
+      filter: alpha(opacity=0);
+    }
+  </style>
+
+  <body>
+    <form id="uploadForm">
+      <div class="inputEntrada">
+        <input type="text" id="name" placeholder="Nome" />
+        <input type="number" id="idade" placeholder="Idade" />
+      </div>
+
+      <div style="width: 100%" class="fileUpload btn btn-primary mb-1">
+        <span>Anexar arquivo</span>
+        <input type="file" class="upload" id="input1" multiple />
+      </div>
+      <p id="messagemAnexo"></p>
+
+      <!-- <input type="button" value="+" id="addInput"> -->
+      <input type="button" value="Adicionar" id="showValues" />
+    </form>
+  </body>
+  <script>
+    const showValuesButton = document.getElementById("showValues");
+    const name = document.getElementById("name");
+    const idade = document.getElementById("idade");
+
+    showValuesButton.addEventListener("click", function () {
+      const inputLenght = document.querySelector(".upload");
+      if (inputLenght.files.length > 1) {
+        getLinkAndSendLink();
+      } else {
+        sendValues();
+      }
+    });
+
+    function getLinkAndSendLink() {
+      const form = document.getElementById("uploadForm");
+      let inputs = [document.getElementById("input1")];
+
+      let values = [];
+      let links = [];
+      let promises = [];
+      for (let i = 0; i < inputs.length; i++) {
+        const input = inputs[i];
+        const fileList = input.files;
+        for (let j = 0; j < fileList.length; j++) {
+          values.push(fileList[j]);
+        }
+      }
+      values.forEach(function (item) {
+        var reader = new FileReader();
+        reader.readAsDataURL(item);
+        let promise = new Promise(function (resolve, reject) {
+          reader.onload = function () {
+            var rawLog = reader.result.split(",")[1];
+            google.script.run
+              .withSuccessHandler(function (a) {
+                resolve(a);
+              })
+              .uploadFileInGoogleDrive(rawLog, item.name, item.type);
+          };
+        });
+        promises.push(promise);
+      });
+
+      Promise.all(promises).then(function (values) {
+        values.forEach(function (link) {
+          links.push(link);
+        });
+        let link2 = links.join(", ");
+        const nameValue = name.value;
+        const idadeValue = idade.value;
+
+        google.script.run
+          .withSuccessHandler(function () {
+            // console.log('Link enviado com sucesso para o servidor!');
+          })
+          .enviarLink(link2, nameValue, idadeValue);
+      });
+    }
+
+    function sendValues() {
+      const nameValue = name.value;
+      const idadeValue = idade.value;
+
+      google.script.run
+        .withSuccessHandler(function () {})
+        .writeInSheet(nameValue, idadeValue);
+    }
+  </script>
+</html>
